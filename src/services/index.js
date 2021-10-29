@@ -47,28 +47,39 @@ mediaRouter.get("/", async (req, res, next) => {
     const reviewsJsonArray = await readJSON(reviewsJSONPath);
     const query = req.query;
 
+    // Example
+    // Searching for q query
     if (query && query.Title) {
+
+      // exists in my media.json ?
       const filteredMedia = mediaJsonArray.filter((media) =>
         media.Title.toLocaleLowerCase().includes(
           query.Title.toLocaleLowerCase()
         )
       );
 
+      // return movie in response
       if (filteredMedia.length > 0) {
         res.send({ media: filteredMedia });
       } else {
-        const omdbResponseByQueryTitle = await axios.get(""); //omdb url + query.Title
+        // search that query in omdbapi
+        const omdbResponseByQueryTitle = await axios.get(
+          `http://www.omdbapi.com/?apikey=a0871843&s="${query.Title.toLowerCase()}"&type=movie&page=1`
+        ); //omdb url + query.Title
         const omdbDataByQueryTitle = omdbResponseByQueryTitle.data;
 
+        // exist in omdb ?
         if (omdbDataByQueryTitle.Response === "True") {
           const ombdMediaBySearch = omdbDataByQueryTitle.Search;
 
-          media.push(...ombdMediaBySearch);
+          // put in our media.json (push inside of our collection)
+          mediaJsonArray.push(...ombdMediaBySearch);
           await writeJSON(mediaJSONPath, mediaJsonArray);
 
+        // return in response
           res.send({ mediaJsonArray: ombdMediaBySearch });
         } else {
-          next(createHttpError(404, omdbData.Error));
+          next(createHttpError(404, Error));
         }
       }
     } else {

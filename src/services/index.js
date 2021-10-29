@@ -7,6 +7,7 @@ import { validationResult } from "express-validator";
 import multer from "multer";
 import axios from "axios";
 import { mediaJSONPath, reviewsJSONPath } from "../lib/fsTools.js";
+import { savePosterCloudinary } from "../lib/cloudinaryTools.js";
 
 const {
   readJSON,
@@ -119,6 +120,8 @@ mediaRouter.put("/:id", mediaValidation, async (req, res, next) => {
 //**************** DELETE MEDIA *******************
 mediaRouter.delete("/:id", async (req, res, next) => {
   try {
+    const errorList = validationResult(req);
+
     if (errorList.isEmpty()) {
       const paramsID = req.params.id;
       const mediaJsonArray = await readJSON(mediaJSONPath);
@@ -151,7 +154,48 @@ mediaRouter.delete("/:id", async (req, res, next) => {
 });
 
 //**************** POST MEDIA POSTER *******************
-mediaRouter.post("/:id", )
+mediaRouter.post(
+  "/:id",
+  multer({ storage: savePosterCloudinary }).single("poster"),
+  async (req, res, next) => {
+    try {
+      const errorList = validationResult(req);
+      if (errorList.isEmpty()) {
+        const paramsID = req.params.id;
+        const mediaJsonArray = await readJSON(mediaJSONPath);
+
+        const filteredMedia = mediaJsonArray.find(
+          (media) => media.imdbID === paramsID
+        );
+
+        const posterUrl = req.file.path;
+
+        const updatedMedia = { ...filteredMedia, Poster: posterUrl };
+        const remainingMedia = mediaJsonArray.filter(
+          (media) => media.imdbID !== paramsID
+        );
+
+        remainingMedia.push(updatedMedia);
+        await writeJSON(mediaJSONPath, remainingMedia);
+
+        res.send({
+          updatedMedia,
+          message: `The Poster was added succesfully to the media with imdbID: ${filteredMedia.imdbID}. `,
+        });
+      } else {
+        next(
+          createHttpError(
+            404,
+            `The media with the id: ${paramsId} was not found.`
+          )
+        );
+      }
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  }
+);
 
 //**************** GET ALL MEDIA BY SEARCH *******************
 

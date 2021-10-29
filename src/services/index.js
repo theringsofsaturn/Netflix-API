@@ -70,7 +70,10 @@ mediaRouter.get("/:id", async (req, res, next) => {
       res.send({ media: filteredMedia, reviews: filteredMediaReviews });
     } else {
       next(
-        createHttpError(404, `Media with the imdbID: ${paramsID} was not found.`)
+        createHttpError(
+          404,
+          `Media with the imdbID: ${paramsID} was not found.`
+        )
       );
     }
   } catch (error) {
@@ -78,6 +81,77 @@ mediaRouter.get("/:id", async (req, res, next) => {
     next(error);
   }
 });
+
+//**************** UPDATE MEDIA *******************
+mediaRouter.put("/:id", mediaValidation, async (req, res, next) => {
+  try {
+    const errorList = validationResult(req);
+
+    if (errorList.isEmpty()) {
+      const paramsID = req.params.id;
+      const mediaJsonArray = await readJSON(mediaJSONPath);
+
+      const filteredMedia = mediaJsonArray.find(
+        (media) => media.imdbID === paramsID
+      );
+
+      if (filteredMedia) {
+        const remainingMedia = mediaJsonArray.filter(
+          (media) => media.imdbID !== paramsID
+        );
+        const updatedMedia = { ...filteredMedia, ...req.body };
+
+        remainingMedia.push(updatedMedia);
+        await writeJSON(mediaJSONPath, remainingMedia);
+      }
+
+      res.send({
+        updatedMedia,
+        message: `The media with imdbID: ${filteredMedia.imdbID} was updated succesfully. `,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+//**************** DELETE MEDIA *******************
+mediaRouter.delete("/:id", async (req, res, next) => {
+  try {
+    if (errorList.isEmpty()) {
+      const paramsID = req.params.id;
+      const mediaJsonArray = await readJSON(mediaJSONPath);
+
+      const filteredMedia = mediaJsonArray.find(
+        (media) => media.imdbID === paramsID
+      );
+      const remainingMedia = mediaJsonArray.filter(
+        (media) => media.imdbID !== paramsID
+      );
+
+      await writeJSON(mediaJSONPath, remainingMedia);
+
+      res.send({
+        filteredMedia,
+        message: `The media with the id: ${filteredMedia.imdbID} was succesfully deleted`,
+      });
+    } else {
+      next(
+        createHttpError(
+          404,
+          `The media with the imdbID: ${paramsID} was not found.`
+        )
+      );
+    }
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+//**************** POST MEDIA POSTER *******************
+mediaRouter.post("/:id", )
 
 //**************** GET ALL MEDIA BY SEARCH *******************
 

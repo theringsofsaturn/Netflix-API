@@ -6,7 +6,7 @@ import { mediaValidation, reviewsValidation } from "./validation.js";
 import { validationResult } from "express-validator";
 import multer from "multer";
 import axios from "axios";
-import { mediaJSONPath } from "../lib/fsTools.js";
+import { mediaJSONPath, reviewsJSONPath } from "../lib/fsTools.js";
 
 const {
   readJSON,
@@ -20,26 +20,66 @@ const {
 
 const mediaRouter = express.Router();
 
+//**************** POST MEDIA *******************
+mediaRouter.post("/", mediaValidation, async (req, res, next) => {
+  try {
+    const errorList = validationResult(req);
+
+    if (errorList.isEmpty()) {
+      const bodyRequest = req.body;
+      const mediaJsonArray = await readJSON(mediaJSONPath);
+
+      const newMedia = {
+        Title: bodyRequest.Title,
+        Year: bodyRequest.Year,
+        imdbID: uniqid(),
+        Type: bodyRequest.Type,
+        Poster: "",
+      };
+
+      mediaJsonArray.push(newMedia);
+      await writeJSON(mediaJSONPath, mediaJsonArray);
+
+      res
+        .status(201)
+        .send({ newMedia, message: "New media was created succesfully!" });
+    } else {
+      next(createHttpError(400, { errorList }));
+    }
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+//**************** GET MEDIA BY ID *******************
+mediaRouter.get("/:id", async (req, res, next) => {
+  try {
+    const paramsID = req.params.id;
+    const mediaJsonArray = await readJSON(mediaJSONPath);
+
+    const filteredMedia = mediaJsonArray.find(
+      (media) => media.imdbID === paramsID
+    );
+
+    if (filteredMedia) {
+      const reviewsJsonArray = await readJSON(reviewsJSONPath);
+      const filteredMediaReviews = reviewsJsonArray.filter(
+        (reviews) => reviews.elementId === paramsID
+      );
+      res.send({ media: filteredMedia, reviews: filteredMediaReviews });
+    } else {
+      next(
+        createHttpError(404, `Media with the imdbID: ${paramsID} was not found.`)
+      );
+    }
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
 //**************** GET ALL MEDIA BY SEARCH *******************
-// Example
-// Searching for batman
-
-// exists in my media.json ?
-//     return movie in response
-
-// else
-
-//     search that query (batman) in omdbapi
-
-//         exist in omdb ?
-
-//             put in our media.json (push inside of our collection)
-
-//             return in response
-
-//         else
-
-//             return not found
 
 mediaRouter.get("/", async (req, res, next) => {
   try {
@@ -50,7 +90,6 @@ mediaRouter.get("/", async (req, res, next) => {
     // Example
     // Searching for q query
     if (query && query.Title) {
-
       // exists in my media.json ?
       const filteredMedia = mediaJsonArray.filter((media) =>
         media.Title.toLocaleLowerCase().includes(
@@ -76,7 +115,7 @@ mediaRouter.get("/", async (req, res, next) => {
           mediaJsonArray.push(...ombdMediaBySearch);
           await writeJSON(mediaJSONPath, mediaJsonArray);
 
-        // return in response
+          // return in response
           res.send({ mediaJsonArray: ombdMediaBySearch });
         } else {
           next(createHttpError(404, Error));

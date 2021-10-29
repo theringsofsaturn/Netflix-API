@@ -1,6 +1,6 @@
 import { body } from "express-validator";
 
-//================ MEDIA VALIDATION ===================
+//****************/ MEDIA VALIDATION *******************
 export const mediaValidation = [
   body("Title")
     .isLength({ min: 1 })
@@ -13,7 +13,7 @@ export const mediaValidation = [
     .withMessage("Type has to be minimum 5 characters"),
 ];
 
-//================ REVIEWS VALIDATION ===================
+//**************** REVIEWS VALIDATION ******************
 export const reviewsValidation = [
   body("comment")
     .isLength({ min: 10 })

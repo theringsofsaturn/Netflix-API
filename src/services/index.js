@@ -8,6 +8,7 @@ import multer from "multer";
 import axios from "axios";
 import { mediaJSONPath, reviewsJSONPath } from "../lib/fsTools.js";
 import { savePosterCloudinary } from "../lib/cloudinaryTools.js";
+import getMediaPDFReadableStream from "../lib/pdfMakeTools.js"
 
 const {
   readJSON,
@@ -242,6 +243,50 @@ mediaRouter.get("/", async (req, res, next) => {
     } else {
       res.send({ mediaJsonArray, reviewsJsonArray });
     }
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+});
+
+//**************** DOWNLOAD PDF *******************
+mediaRouter.get(":id/download/pdf", async (req, res, next) => {
+  try {
+    const paramsID = req.params.id;
+    const mediaJsonArray = await readJSON(mediaJSONPath);
+
+    const filteredMedia = mediaJsonArray.find(
+      (media) => media.imdbID === paramsID
+    );
+
+    if (filteredMedia) {
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${filteredMedia.Title}.pdf`
+      );
+
+      const reviewsJsonArray = await readJSON(reviewsJSONPath);
+      const singleMediaReviews = reviewsJsonArray.filter(
+        (reviews) => reviews.elementId === paramsID
+      );
+
+      const source = await getMediaPDFReadableStream(
+        filteredMedia,
+        singleMediaReviews
+      );
+      const destination = res;
+
+      pipeline(source, destination, (err) => {
+        if (err) next(err);
+      });
+    }else {
+        next(
+          createHttpError(
+            404,
+            `The media with the imdbID: ${paramsID} not found.`
+          )
+        );
+      }
   } catch (error) {
     console.log(error);
     next(error);

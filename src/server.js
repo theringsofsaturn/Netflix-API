@@ -1,4 +1,5 @@
 import express from "express";
+import mediaRouter from "./services/index.js";
 import cors from "cors"; // will enable the frontend to communicate with the backend
 import listEndpoints from "express-list-endpoints"; // showing the tree with endpoints
 import {
